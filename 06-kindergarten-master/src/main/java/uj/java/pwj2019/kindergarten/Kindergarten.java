@@ -6,19 +6,96 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 
-final class Dziecko extends Child{
+final class Dziecko extends Child implements Runnable, Comparable<Dziecko> {
 
-    public Dziecko(String name, int hungerSpeedMs) {
+
+    public  ReentrantLock leftFork;
+    public  ReentrantLock rightFork;
+    public  int prefered_fork;
+    public Random rand;
+    public int prog_glodu = 60 ;
+    public int thinking_time = 100;
+
+
+    public Dziecko(String name, int hungerSpeedMs, Random random , ReentrantLock leftFork, ReentrantLock rightFork , int prefered_fork) {
         super(name, hungerSpeedMs);
+
+        this.leftFork = leftFork;
+        this.rightFork = rightFork;
+        this.prefered_fork = prefered_fork;
+        this.rand = random;
+
+        //thinking_time = 90 + rand.nextInt(21);
+        thinking_time = this.hungerSpeed() * 5 ;
+        prog_glodu = 60 - rand.nextInt(6);
+
+    }
+
+
+
+    public void think() throws InterruptedException {
+        Thread.sleep(this.thinking_time);
+    }
+
+
+    @Override
+    public int compareTo(Dziecko o) {
+        return  Integer.compare(happiness(), o.happiness()) ;
+    }
+
+    @Override
+    public void run() {
+
+        try{
+            while (true)
+            {
+                if (  !leftFork.isLocked() && !rightFork.isLocked() && happiness() <=  prog_glodu )
+                {
+                    if ( prefered_fork == 0 )
+                    {
+                        this.leftFork.lock();
+                        this.rightFork.lock();
+                    } else
+                    {
+                        this.rightFork.lock();
+                        this.leftFork.lock();
+                    }
+
+                    this.eat();
+
+                    this.leftFork.unlock();
+                    this.rightFork.unlock();
+
+
+                } else {
+                    try {
+                        this.think();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }
+
+
+
 
 public class Kindergarten {
 
@@ -29,21 +106,32 @@ public class Kindergarten {
         Path file_path = Paths.get(fileName);
 
          List<String> strim = Files.readAllLines(file_path);
-         Integer n = Integer.parseInt(strim.get(0));
+         int n = Integer.parseInt(strim.get(0));
 
-         
+        Random random = new Random();
+        ReentrantLock[] forks = new ReentrantLock[n];
+
+        for (int i = 0; i < n; i++) {
+            forks[i] = new ReentrantLock();
+        }
+
+
         List<Child> children = new LinkedList<>();
         for (int i = 0; i < n; i++) {
             String temp = strim.get(i+1);
             String[] temp_str = temp.split(" ");
-            Dziecko g = new Dziecko( temp_str[0]  , Integer.parseInt(temp_str[1]) ) ;
-            children.add( g );
+            Dziecko dz = new Dziecko( temp_str[0]  , Integer.parseInt(temp_str[1]) , random , forks[i] , forks[(i+1) % n]  , random.nextInt(2) ) ;
+            children.add( dz );
+            new Thread(dz).start();
         }
 
 
 
         System.out.println("File name: " + fileName);
         //TODO: read children file, and keep children NOT hungry!
+
+
+
     }
 
     private static void init() throws IOException {
@@ -54,7 +142,8 @@ public class Kindergarten {
 
     private static void runKindergarden() {
         try {
-            Thread.sleep(10100);
+            //10100
+            Thread.sleep(20100);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

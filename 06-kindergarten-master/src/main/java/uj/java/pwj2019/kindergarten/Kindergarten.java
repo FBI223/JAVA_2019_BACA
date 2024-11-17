@@ -13,9 +13,9 @@ import java.util.List;
 
 
 
-final class Gowniak extends Child{
+final class Dziecko extends Child{
 
-    public Gowniak(String name, int hungerSpeedMs) {
+    public Dziecko(String name, int hungerSpeedMs) {
         super(name, hungerSpeedMs);
     }
 }
@@ -31,17 +31,15 @@ public class Kindergarten {
          List<String> strim = Files.readAllLines(file_path);
          Integer n = Integer.parseInt(strim.get(0));
 
+         
         List<Child> children = new LinkedList<>();
         for (int i = 0; i < n; i++) {
             String temp = strim.get(i+1);
             String[] temp_str = temp.split(" ");
-            Gowniak g = new Gowniak( temp_str[0]  , Integer.parseInt(temp_str[1]) ) ;
+            Dziecko g = new Dziecko( temp_str[0]  , Integer.parseInt(temp_str[1]) ) ;
             children.add( g );
         }
 
-        children.get(0).eat();
-        children.get(1).eat();
-        children.get(2).eat();
 
 
         System.out.println("File name: " + fileName);
